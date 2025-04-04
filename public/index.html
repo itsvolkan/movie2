@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronized Movie Player</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simple-peer/9.11.0/simplepeer.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Synchronized Movie Player</h1>
+            <div class="room-info">
+                <input type="text" id="room-id" placeholder="Room ID" readonly>
+                <button id="copy-link">Copy Link</button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="video-container">
+                <video id="movie-player" controls></video>
+                <div class="controls">
+                    <input type="file" id="file-input" accept="video/*">
+                    <input type="text" id="video-url" placeholder="Enter video URL">
+                    <button id="load-url">Load URL</button>
+                </div>
+            </div>
+            
+            <div class="side-panel">
+                <div class="video-chat-container">
+                    <h3>Video Chat</h3>
+                    <div class="video-participants" id="video-participants">
+                        <video id="local-video" autoplay muted></video>
+                    </div>
+                    <div class="video-controls">
+                        <button id="toggle-video">Toggle Video</button>
+                        <button id="toggle-audio">Toggle Audio</button>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <h3>Chat</h3>
+                    <div class="messages" id="messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="message-input" placeholder="Type message...">
+                        <button id="send-message">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="join-create-modal active" id="join-create-modal">
+            <div class="modal-content">
+                <h2>Synchronized Movie Player</h2>
+                <div class="option">
+                    <h3>Create New Room</h3>
+                    <input type="text" id="username-create" placeholder="Your username">
+                    <button id="create-room">Create Room</button>
+                </div>
+                <div class="option">
+                    <h3>Join Existing Room</h3>
+                    <input type="text" id="room-id-join" placeholder="Enter Room ID">
+                    <input type="text" id="username-join" placeholder="Your username">
+                    <button id="join-room">Join Room</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
