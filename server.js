@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -33,7 +32,9 @@ io.on('connection', (socket) => {
             videoState: {
                 source: null,
                 isPlaying: false,
-                currentTime: 0
+                currentTime: 0,
+                videoType: 'direct', // 'direct', 'youtube', 'vimeo', etc.
+                videoId: null
             }
         };
         
@@ -74,12 +75,15 @@ io.on('connection', (socket) => {
         if (rooms[roomId].videoState.source) {
             socket.emit('video-source-change', {
                 type: 'url',
-                source: rooms[roomId].videoState.source
+                source: rooms[roomId].videoState.source,
+                videoType: rooms[roomId].videoState.videoType,
+                videoId: rooms[roomId].videoState.videoId
             });
             
             socket.emit('video-state-change', {
                 isPlaying: rooms[roomId].videoState.isPlaying,
-                currentTime: rooms[roomId].videoState.currentTime
+                currentTime: rooms[roomId].videoState.currentTime,
+                videoType: rooms[roomId].videoState.videoType
             });
         }
         
@@ -112,54 +116,76 @@ io.on('connection', (socket) => {
     });
     
     // Video state change (play/pause/seek)
-    socket.on('video-state-change', ({ roomId, isPlaying, currentTime }) => {
+    socket.on('video-state-change', ({ roomId, isPlaying, currentTime, videoType }) => {
         if (rooms[roomId]) {
+            // Update room state
             rooms[roomId].videoState.isPlaying = isPlaying;
             rooms[roomId].videoState.currentTime = currentTime;
+            rooms[roomId].videoState.videoType = videoType;
             
-            socket.to(roomId).emit('video-state-change', { isPlaying, currentTime });
+            // Broadcast to other users in the room
+            socket.to(roomId).emit('video-state-change', {
+                isPlaying,
+                currentTime,
+                videoType
+            });
         }
     });
     
     // Video source change
-    socket.on('video-source-change', ({ roomId, type, source }) => {
+    socket.on('video-source-change', ({ roomId, type, source, videoType, videoId }) => {
         if (rooms[roomId]) {
+            // Update room state
             rooms[roomId].videoState.source = source;
+            rooms[roomId].videoState.videoType = videoType;
+            rooms[roomId].videoState.videoId = videoId;
             rooms[roomId].videoState.isPlaying = false;
             rooms[roomId].videoState.currentTime = 0;
             
-            socket.to(roomId).emit('video-source-change', { type, source });
+            // Broadcast to other users in the room
+            socket.to(roomId).emit('video-source-change', {
+                type,
+                source,
+                videoType,
+                videoId
+            });
         }
     });
     
-    // Disconnection
+    // Handle disconnection
     socket.on('disconnect', () => {
-        const userData = users[socket.id];
-        if (userData) {
-            const { roomId, username } = userData;
+        console.log('User disconnected:', socket.id);
+        
+        const user = users[socket.id];
+        if (user) {
+            const { roomId, username } = user;
             
-            // Remove user from room and notify others
             if (rooms[roomId]) {
+                // Remove user from room
                 delete rooms[roomId].users[socket.id];
                 
-                // If room is empty, delete it
+                // Notify other users
+                socket.to(roomId).emit('user-disconnected', {
+                    userId: socket.id,
+                    username
+                });
+                
+                // Delete room if empty
                 if (Object.keys(rooms[roomId].users).length === 0) {
                     delete rooms[roomId];
                     console.log(`Room ${roomId} deleted (empty)`);
-                } else {
-                    // Notify others that user has left
-                    socket.to(roomId).emit('user-disconnected', {
-                        userId: socket.id,
-                        username
-                    });
                 }
             }
             
-            // Remove user data
+            // Remove user from users object
             delete users[socket.id];
-            console.log(`User disconnected: ${socket.id} (${username})`);
         }
     });
+});
+
+// Default route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server
